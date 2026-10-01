@@ -1,8 +1,5 @@
-### Файл 4 из 4: `AGENT_ROADMAP.md`
-
-```markdown
 # Autonomous Agent Implementation Roadmap
-## Project Name: Apex (macOS High-Performance Proxy Client)
+## Project Name: TELIFON (macOS High-Performance Proxy Client)
 
 ---
 
@@ -11,7 +8,7 @@
 Перед началом работы агент (Cursor, Claude Code, Devin и др.) обязан следовать правилам:
 1. **Строго без Xcode IDE:** Запрещено создавать `.xcodeproj`, `.xcworkspace` или вызывать `xcodebuild` без крайней необходимости. Все операции производятся через `swift build`, `go build`, `make` и shell-скрипты.
 2. **Идемпотентность и атомарность:** Каждая фаза должна завершаться компилируемым и проверяемым кодом. Не переходить к следующей фазе без прохождения критериев приемки (Acceptance Criteria).
-3. **Разделение прав (Zero Root in GUI):** Пользовательский интерфейс на Swift **никогда** не должен требовать запуска через `sudo`. Только системный демон `apex-cored` работает с привилегиями root.
+3. **Разделение прав (Zero Root in GUI):** Пользовательский интерфейс на Swift **никогда** не должен требовать запуска через `sudo`. Только системный демон `telifon-cored` работает с привилегиями root.
 4. **Контракты IPC:** Строго соблюдать структуры данных, описанные в `IPC_SPEC.md`.
 
 ---
@@ -55,16 +52,16 @@
 
 #### Задачи
 1. Создать файловую структуру согласно `ARCHITECTURE.md`:
-   * `mkdir -p core/cmd/apex-cored core/pkg/{config,engine,ipc,inspector}`
-   * `mkdir -p ui/Sources/ApexUI/{Menu,Views,Services,Models}`
+   * `mkdir -p core/cmd/telifon-cored core/pkg/{config,engine,ipc,inspector}`
+   * `mkdir -p ui/Sources/TelifonUI/{Menu,Views,Services,Models}`
    * `mkdir -p scripts assets build/bin`
-2. Создать корневой `Package.swift` с таргетом `ApexUI` (платформа `macOS(.v14)`).
-3. Инициализировать `go.mod` в каталоге `core` (`module apex-core`).
+2. Создать корневой `Package.swift` с таргетом `TelifonUI` (платформа `macOS(.v14)`).
+3. Инициализировать `go.mod` в каталоге `core` (`module telifon-core`).
 4. Написать базовый корневой `Makefile` с целями `core`, `ui`, `app`, `clean`.
 
 #### Критерии приемки Phase 0
 * Команда `make clean && make ui` успешно собирает тестовый Swift Hello World через `swift build`.
-* Команда `make core` собирает заглушку Go-бинарника в `build/bin/apex-cored`.
+* Команда `make core` собирает заглушку Go-бинарника в `build/bin/telifon-cored`.
 
 ---
 
@@ -73,7 +70,7 @@
 #### Задачи
 1. **Зависимости:** В `core/go.mod` подключить `github.com/sagernet/sing-box` актуальной версии и инициализировать сборку с тегами:
    `-tags "with_gvisor with_quic with_dhcp with_wireguard with_ech with_utls"`.
-2. **Memory Guard:** В `core/cmd/apex-cored/main.go` внедрить рантайм-настройки памяти:
+2. **Memory Guard:** В `core/cmd/telifon-cored/main.go` внедрить рантайм-настройки памяти:
    ```go
    debug.SetMemoryLimit(96 * 1024 * 1024)
    debug.SetGCPercent(30)
@@ -86,7 +83,7 @@
    * Создать обертку над `box.New(box.Options{...})` с методами `Start()`, `Close()`, `Pause()`, `Resume()`.
 
 #### Критерии приемки Phase 1
-* Тестовый запуск `sudo ./build/bin/apex-cored --test-run` поднимает интерфейс `utun100` (видно в выводе `ifconfig utun100`), успешно выполняет хэндшейк VLESS/Hy2 и завершается по сигналу `SIGINT` с корректным удалением интерфейса.
+* Тестовый запуск `sudo ./build/bin/telifon-cored --test-run` поднимает интерфейс `utun100` (видно в выводе `ifconfig utun100`), успешно выполняет хэндшейк VLESS/Hy2 и завершается по сигналу `SIGINT` с корректным удалением интерфейса.
 
 ---
 
@@ -98,7 +95,7 @@
    * Добавить LRU-кэш на `sync.Map` с автоматическим сбросом устаревших записей (TTL 2 секунды).
    * Реализовать получение имени процесса и bundle ID через `libproc` (`proc_pidpath`).
 2. **IPC Сервер (`core/pkg/ipc`):**
-   * Поднять сервер на Unix Domain Socket по пути `/var/run/apex/apex.sock` (с правами `0660` и группой `admin`).
+   * Поднять сервер на Unix Domain Socket по пути `/var/run/telifon/telifon.sock` (с правами `0660` и группой `admin`).
    * Реализовать NDJSON-парсер входящих запросов (`engine.start`, `engine.stop`, `engine.pause`, `node.switch`, `routing.set_mode`).
    * Реализовать потоковую рассылку телеметрии (`telemetry.metrics` каждые 500 мс и `telemetry.connections`).
 
@@ -106,7 +103,7 @@
 * Демон запускается под `sudo`.
 * Из обычного терминала (без sudo) выполняется команда:
   ```bash
-  echo '{"type":"request","id":"1","action":"system.ping"}' | nc -U /var/run/apex/apex.sock
+  echo '{"type":"request","id":"1","action":"system.ping"}' | nc -U /var/run/telifon/telifon.sock
   ```
   В ответ приходит валидный JSON со статусом демона и версией sing-box.
 
@@ -115,7 +112,7 @@
 ### Phase 3: Нативный интерфейс (SwiftUI / AppKit без Xcode)
 
 #### Задачи
-1. **Модели и IPC-клиент (`ui/Sources/ApexUI/Services/IPCClient.swift`):**
+1. **Модели и IPC-клиент (`ui/Sources/TelifonUI/Services/IPCClient.swift`):**
    * Реализовать асинхронный клиент на Swift `actor` поверх POSIX сокета, поддерживающий чтение NDJSON потока через `AsyncStream`.
    * Написать структуры запросов и ответов согласно `IPC_SPEC.md`.
 2. **Жизненный цикл без Interface Builder (`main.swift` & `AppDelegate.swift`):**
@@ -143,18 +140,18 @@
    * Перехват `NSWorkspace.willSleepNotification` -> отправка `engine.pause` в сокет.
    * Перехват `NSWorkspace.didWakeNotification` -> опрос `NWPathMonitor` -> отправка `engine.resume` после подтверждения сети.
 2. **Скрипт бандлинга (`scripts/bundle_app.sh`):**
-   * Сборка структуры директорий `Apex.app/Contents/{MacOS,Resources}`.
+   * Сборка структуры директорий `Telifon.app/Contents/{MacOS,Resources}`.
    * Генерация `Info.plist` с ключами:
      * `LSUIElement = true` (Menu Bar Agent)
-     * `CFBundleIdentifier = com.apex.proxy`
+     * `CFBundleIdentifier = com.telifon.proxy`
      * `LSMinimumSystemVersion = 14.0`
 3. **Скрипт установки демона (`scripts/install_helper.sh`):**
-   * Создание Launchd-манифеста `/Library/LaunchDaemons/com.apex.cored.plist`.
-   * Регистрация демона в системе: `launchctl bootstrap system /Library/LaunchDaemons/com.apex.cored.plist`.
+   * Создание Launchd-манифеста `/Library/LaunchDaemons/com.telifon.cored.plist`.
+   * Регистрация демона в системе: `launchctl bootstrap system /Library/LaunchDaemons/com.telifon.cored.plist`.
 
 #### Критерии приемки Phase 4
-* Запуск `make app` создает валидный `build/Apex.app`.
-* Приложение открывается штатно по двойному клику или через `open build/Apex.app`.
+* Запуск `make app` создает валидный `build/Telifon.app`.
+* Приложение открывается штатно по двойному клику или через `open build/Telifon.app`.
 * При переводе Mac в режим сна и выходе из него туннель не зависает, сетевые соединения продолжают работать.
 
 ---
@@ -165,6 +162,6 @@
 1. **VLESS Reality:** Проверка работы через сервер с Reality (проверка отсутствия блокировок по TLS-отпечатку).
 2. **Hysteria 2:** Проверка достижения пиковой скорости на нестабильном канале (тест UDP Brutal CC).
 3. **DNS-Leak Test:** Проверка на `browserleaks.com/dns` — должны отсутствовать утечки DNS провайдера, виден только IP прокси.
-4. **Memory Footprint:** Проверка через `Activity Monitor` — процесс `ApexUI` потребляет < 35 МБ RAM, процесс `apex-cored` < 60 МБ RAM в простое.
+4. **Memory Footprint:** Проверка через `Activity Monitor` — процесс `TelifonUI` потребляет < 35 МБ RAM, процесс `telifon-cored` < 60 МБ RAM в простое.
 
 ---

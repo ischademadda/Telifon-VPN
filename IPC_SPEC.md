@@ -1,23 +1,23 @@
 # Inter-Process Communication (IPC) Specification
-## Project Name: Apex (macOS High-Performance Proxy Client)
+## Project Name: TELIFON (macOS High-Performance Proxy Client)
 
 ---
 
 ## 1. Транспорт и модель подключения
 
-Взаимодействие между непривилегированным интерфейсом (`ApexUI`) и корневым системным демоном (`apex-cored`) осуществляется через **Unix Domain Socket (UDS)** с потоковым кадрированием через перевод строки (`\n` framing / Newline-Delimited JSON).
+Взаимодействие между непривилегированным интерфейсом (`TelifonUI`) и корневым системным демоном (`telifon-cored`) осуществляется через **Unix Domain Socket (UDS)** с потоковым кадрированием через перевод строки (`\n` framing / Newline-Delimited JSON).
 
 ### 1.1. Параметры сокета
-* **Путь:** `/var/run/apex/apex.sock`
-* **Фолбек путь (dev-режим без root):** `~/.apex/apex.sock`
+* **Путь:** `/var/run/telifon/telifon.sock`
+* **Фолбек путь (dev-режим без root):** `~/.telifon/telifon.sock`
 * **Права доступа:** `0660` (`rw-rw----`)
 * **Владелец:** `root:admin`
 * **Формат данных:** UTF-8 encoded JSON. Каждое сообщение обязательно завершается символом перевода строки `\n` (`0x0A`).
 
 ```
- +------------------+                           +--------------------+
- | Swift UI Client  |                           |  apex-cored Daemon |
- +------------------+                           +--------------------+
+ +------------------+                           +----------------------+
+ | Swift UI Client  |                           |  telifon-cored Daemon|
+ +------------------+                           +----------------------+
           |                                                |
           |-------- [Request] id: 1, action: "status" ---->|
           |<------- [Response] id: 1, payload: {...} ------|
@@ -103,7 +103,7 @@
 * **Payload:**
   ```json
   {
-    "config_path": "/var/run/apex/active_config.json"
+    "config_path": "/var/run/telifon/active_config.json"
   }
   ```
 * **Response Payload:**

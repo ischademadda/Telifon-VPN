@@ -1,6 +1,5 @@
-
 # Architecture Blueprint & Technical Specification
-## Project Name: Apex (macOS High-Performance Proxy Client)
+## Project Name: TELIFON (macOS High-Performance Proxy Client)
 
 ---
 
@@ -13,20 +12,20 @@
 
 ```
                       +------------------------------------------+
-                      |         Apex.app (User Space GUI)        |
-                      |   Swift 6 / AppKit + SwiftUI (No-Xcode)   |
+                      |        Telifon.app (User Space GUI)      |
+                      |   Swift 6 / AppKit + SwiftUI (No-Xcode)  |
                       |   • Status Item (Menu Bar)               |
                       |   • Telemetry Consumer (DisplayLink)     |
                       |   • Connection & Rules Inspector         |
                       +------------------------------------------+
                                            |
                                 [Unix Domain Socket]
-                             /var/run/apex/apex.sock
+                            /var/run/telifon/telifon.sock
                          (JSON-RPC Control + Stream Telemetry)
                                            |
                                            v
                       +------------------------------------------+
-                      |        apex-cored (Root System Daemon)    |
+                      |      telifon-cored (Root System Daemon)  |
                       |        Golang 1.23+ with sing-box Core   |
                       |                                          |
                       |  • Fake-IP & Split-DNS Engine            |
@@ -51,17 +50,17 @@
 Проект полностью управляется через консольные утилиты (`swift build`, `go build`, `make`). В корне нет ни одного файла `.xcodeproj` или `.xcworkspace`.
 
 ```text
-apex/
+telifon-vpn/
 ├── Makefile                     # Единая точка сборки всего проекта
 ├── Package.swift                # Swift Package Manager манифест для GUI
 ├── scripts/
-│   ├── bundle_app.sh            # Скрипт упаковки SPM-бинарника в Apex.app
+│   ├── bundle_app.sh            # Скрипт упаковки SPM-бинарника в Telifon.app
 │   └── install_helper.sh        # Скрипт регистрации демона в launchd
 ├── core/                        # Golang: Демон и интеграция sing-box
 │   ├── go.mod
 │   ├── go.sum
 │   ├── cmd/
-│   │   └── apex-cored/
+│   │   └── telifon-cored/
 │   │       └── main.go          # Входная точка системного демона
 │   └── pkg/
 │       ├── config/              # Генерация и валидация sing-box JSON-конфигов
@@ -70,7 +69,7 @@ apex/
 │       └── inspector/           # Парсер Darwin sysctl PCB (поиск PID процесса)
 ├── ui/                          # Swift: Нативный интерфейс
 │   └── Sources/
-│       └── ApexUI/
+│       └── TelifonUI/
 │           ├── main.swift       # Инициализация NSApplication (без Storyboards)
 │           ├── AppDelegate.swift
 │           ├── Menu/
@@ -92,7 +91,7 @@ apex/
 
 ---
 
-## 3. Системный демон сетевого ядра (`apex-cored`)
+## 3. Системный демон сетевого ядра (`telifon-cored`)
 
 Демон запускается с правами `root` через `launchd` или временный эскалатор прав (`sudo`), что дает ему возможность создавать интерфейсы `/dev/utun`, перенастраивать системные маршруты и инспектировать сокеты ядра.
 
@@ -148,7 +147,7 @@ apex/
 
 ---
 
-## 4. Клиентский интерфейс (`Apex.app`)
+## 4. Клиентский интерфейс (`Telifon.app`)
 
 Интерфейс строится исключительно на Swift Package Manager без создания `.xcodeproj`.
 
@@ -158,15 +157,15 @@ apex/
 import PackageDescription
 
 let package = Package(
-    name: "Apex",
+    name: "Telifon",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "ApexUI", targets: ["ApexUI"])
+        .executable(name: "TelifonUI", targets: ["TelifonUI"])
     ],
     targets: [
         .executableTarget(
-            name: "ApexUI",
-            path: "ui/Sources/ApexUI",
+            name: "TelifonUI",
+            path: "ui/Sources/TelifonUI",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI"),
@@ -192,10 +191,10 @@ let package = Package(
 
 ## 5. Межпроцессное взаимодействие (IPC)
 
-Общение GUI и демона ядра осуществляется через Unix Domain Socket по пути `/var/run/apex/apex.sock`.
+Общение GUI и демона ядра осуществляется через Unix Domain Socket по пути `/var/run/telifon/telifon.sock`.
 
 ### 5.1. Модель безопасности сокета
-* Каталог `/var/run/apex` создается демоном при старте.
+* Каталог `/var/run/telifon` создается демоном при старте.
 * Права на сокет: `0660`.
 * Владелец: `root:admin`.
 * Любой пользователь из группы `admin` (стандартная группа пользователя macOS) может подключаться к сокету без необходимости запускать GUI через `sudo`.
@@ -237,33 +236,33 @@ NSWorkspace.shared.notificationCenter.addObserver(
 ```makefile
 SHELL := /bin/bash
 BUILD_DIR := ./build
-APP_BUNDLE := $(BUILD_DIR)/Apex.app
+APP_BUNDLE := $(BUILD_DIR)/Telifon.app
 
 .PHONY: all core ui app install clean
 
 all: core ui app
 
 core:
-	@echo "==> Building Go Core Daemon (apex-cored)..."
+	@echo "==> Building Go Core Daemon (telifon-cored)..."
 	@cd core && GODEBUG=madvdontneed=1 go build \
 		-tags "with_gvisor with_quic with_dhcp with_wireguard with_ech with_utls" \
 		-ldflags="-s -w" \
-		-o ../$(BUILD_DIR)/bin/apex-cored ./cmd/apex-cored
+		-o ../$(BUILD_DIR)/bin/telifon-cored ./cmd/telifon-cored
 
 ui:
 	@echo "==> Building Swift UI via SPM..."
 	@swift build -c release --arch arm64 --arch x86_64
 	@mkdir -p $(BUILD_DIR)/bin
-	@cp .build/apple/Products/Release/ApexUI $(BUILD_DIR)/bin/ApexUI
+	@cp .build/apple/Products/Release/TelifonUI $(BUILD_DIR)/bin/TelifonUI
 
 app:
 	@echo "==> Packaging into $(APP_BUNDLE)..."
-	@./scripts/bundle_app.sh $(BUILD_DIR)/bin/ApexUI $(APP_BUNDLE)
+	@./scripts/bundle_app.sh $(BUILD_DIR)/bin/TelifonUI $(APP_BUNDLE)
 
 install:
 	@echo "==> Installing Privileged Daemon..."
-	@sudo ./scripts/install_helper.sh $(BUILD_DIR)/bin/apex-cored
-	@echo "==> Copying Apex.app to /Applications..."
+	@sudo ./scripts/install_helper.sh $(BUILD_DIR)/bin/telifon-cored
+	@echo "==> Copying Telifon.app to /Applications..."
 	@cp -R $(APP_BUNDLE) /Applications/
 
 clean:
@@ -271,8 +270,7 @@ clean:
 ```
 
 Скрипт `scripts/bundle_app.sh` создает нативный бандл macOS за считанные миллисекунды:
-1. Создает дерево: `Apex.app/Contents/{MacOS,Resources}`.
-2. Копирует скомпилированный SPM-бинарник в `Contents/MacOS/ApexUI`.
-3. Генерирует валидный `Info.plist` с указанием `LSUIElement = true` (Menu Bar Agent), минимальной версии macOS и бандл-идентификатора.
+1. Создает дерево: `Telifon.app/Contents/{MacOS,Resources}`.
+2. Копирует скомпилированный SPM-бинарник в `Contents/MacOS/TelifonUI`.
+3. Генерирует валидный `Info.plist` с указанием `LSUIElement = true` (Menu Bar Agent), минимальной версии macOS и бандл-идентификатора `com.telifon.proxy`.
 4. Копирует файл иконки `AppIcon.icns`.
-```

@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
-## Project Name: Apex (macOS High-Performance Proxy Client)
+## Project Name: TELIFON (macOS High-Performance Proxy Client)
 
 ---
 
 ## 1. Overview & Vision
-Apex — нативный, высокопроизводительный клиент обхода блокировок для macOS (14.0 Sonoma / 15.0 Sequoia+), разработанный без использования тяжелой IDE Xcode. Проект собирается полностью через CLI-инструментарий (Swift Package Manager, Go toolchain, Make) и ориентирован на максимальную энергоэффективность, скорость старта и нулевой оверхед по памяти.
+TELIFON — нативный, высокопроизводительный клиент обхода блокировок для macOS (14.0 Sonoma / 15.0 Sequoia+), разработанный без использования тяжелой IDE Xcode. Проект собирается полностью через CLI-инструментарий (Swift Package Manager, Go toolchain, Make) и ориентирован на максимальную энергоэффективность, скорость старта и нулевой оверхед по памяти.
 
 ### Ключевые цели
 * **Протоколы:** Полноценная поддержка VLESS (XTLS-Reality, Vision) и Hysteria 2 (Salamander, Brutal CC, Port-hopping).
@@ -138,5 +138,5 @@ Apex — нативный, высокопроизводительный клие
   * Go 1.23+ (`go build`).
   * GNU Make (`make`).
 * **Результат сборки:**
-  * `Apex.app` — готовый бандл приложения в `/Applications` или `./build`.
-  * `apex-helper` — бинарник системного демона (устанавливается в `/Library/PrivilegedHelperTools/` или запускается через `sudo` при первом старте).
+  * `Telifon.app` — готовый бандл приложения в `/Applications` или `./build`.
+  * `telifon-helper` — бинарник системного демона (устанавливается в `/Library/PrivilegedHelperTools/` или запускается через `sudo` при первом старте).
