@@ -15,8 +15,9 @@ Package.resolved
 *.xcworkspace
 xcuserdata/
 
-# Go
+# Go & Build outputs
 bin/
+build/
 *.exe
 *.test
 *.out
